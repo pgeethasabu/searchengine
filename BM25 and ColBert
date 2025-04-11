@@ -1,0 +1,101 @@
+!pip install elasticsearch transformers faiss-cpu datasets nltk gensim
+
+!pip install datasets
+
+from datasets import load_dataset
+
+dataset = load_dataset("ccdv/arxiv-classification", split="train[:1%]")
+
+print(f"Loaded {len(dataset)} documents")
+
+import re
+
+def extract_fields(text):
+    """
+    Extract id, title, abstract, authors, and categories from the text of an article.
+    """
+    # Extract ID using regex (assumes arXiv format)
+    id_match = re.search(r'arXiv:(\d{4}\.\d{4,5}v\d+)', text)
+    id_val = id_match.group(1) if id_match else None
+
+    # Extract title (first line before "arXiv:")
+    title = text.split("arXiv:")[0].strip()
+
+    # Extract abstract (between "Abstract" and a blank line)
+    abstract_match = re.search(r'Abstract\n(.*?)\n\n', text, re.DOTALL)
+    abstract = abstract_match.group(1).strip() if abstract_match else None
+
+    # Extract authors (lines containing "@" before "Abstract")
+    authors_match = re.findall(r'(.*?@.*?)\n', text.split("Abstract")[0])
+    authors = [a.strip() for a in authors_match]
+
+    # Categories are not reliably extractable, set to None
+    categories = None
+
+    return {
+        "id": id_val,
+        "title": title,
+        "abstract": abstract,
+        "authors": ", ".join(authors) if authors else None,
+        "categories": categories,
+    }
+
+documents = [extract_fields(doc["text"]) for doc in dataset]
+documents = list(filter(lambda d: d["abstract"] and len(d["abstract"].strip()) > 0, documents))
+
+
+!pip install rank_bm25
+import nltk
+nltk.download('punkt_tab')
+from rank_bm25 import BM25Okapi
+import nltk
+from nltk.tokenize import word_tokenize
+nltk.download('punkt')
+
+# Preprocess for BM25
+corpus = [word_tokenize(doc["abstract"].lower()) for doc in documents if doc["abstract"] is not None]
+bm25 = BM25Okapi(corpus)
+
+# Query
+query = "quantum entanglement"
+tokenized_query = word_tokenize(query.lower())
+scores = bm25.get_scores(tokenized_query)
+
+# Top 10 results
+import numpy as np
+top_n = np.argsort(scores)[::-1][:10]
+top_docs = [documents[i] for i in top_n]
+
+
+
+from transformers import AutoTokenizer, AutoModel
+import torch
+import numpy as np
+
+model_name = "colbert-ir/colbertv2.0"
+tokenizer = AutoTokenizer.from_pretrained(model_name)
+model = AutoModel.from_pretrained(model_name)
+model.eval()
+
+def embed_text(text):
+    tokens = tokenizer(text, return_tensors="pt", truncation=True, padding=True)
+    with torch.no_grad():
+        embeddings = model(**tokens).last_hidden_state  # shape: [1, seq_len, hidden_size]
+    return embeddings.squeeze(0).numpy()
+
+# Embed top BM25 docs
+# Embed top BM25 docs, filtering out those without an abstract
+doc_embeddings = [embed_text(doc["abstract"]).mean(axis=0) for doc in top_docs if doc["abstract"] is not None]
+query_embedding = embed_text(query).mean(axis=0)
+
+# Compute similarity (cosine or dot)
+sims = [np.dot(query_embedding, d_emb) for d_emb in doc_embeddings]
+reranked_indices = np.argsort(sims)[::-1]
+final_results = [top_docs[i] for i in reranked_indices]
+
+
+for i, doc in enumerate(final_results):
+    print(f"Rank {i+1}: {doc['title']}")
+    abstract = doc.get('abstract', 'Abstract not available.')
+    print(abstract[:300] + "..." if abstract else "Abstract not available.")
+    print("-" * 80)
