@@ -1,0 +1,23 @@
+# pandas
+# elasticsearch
+# transformers
+# torch
+# tqdm
+# numpy
+# Core Libraries
+pandas
+numpy
+tqdm
+elasticsearch==7.17.0
+
+# NLP & Transformers
+torch
+transformers
+sentencepiece  # Needed for some tokenizer models like RankT5
+
+# Graph Ranking
+networkx
+
+# # Semantic Search (optional but helpful)
+faiss-cpu
+

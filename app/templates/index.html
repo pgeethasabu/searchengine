@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Academic Search Engine</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 30px; }
+        .search-box { margin-bottom: 30px; }
+        .result { border-bottom: 1px solid #ddd; margin-bottom: 20px; padding-bottom: 10px; }
+        .title { font-weight: bold; font-size: 18px; }
+    </style>
+</head>
+<body>
+    <h1>Group 23 Search Engine</h1>
+    <form method="post" class="search-box">
+        <input type="text" name="query" placeholder="Enter your search query..." value="{{ query }}" style="width: 400px; padding: 8px;" required>
+        <input type="submit" value="Search" style="padding: 8px 12px;">
+    </form>
+
+    {% if results %}
+        <h2>Results for "{{ query }}"</h2>
+        {% for doc in results %}
+            <div class="result">
+                <div class="title">{{ doc.title }}</div>
+                <div class="abstract">{{ doc.summary[:300] }}...</div>
+            </div>
+        {% endfor %}
+    {% endif %}
+</body>
+</html>

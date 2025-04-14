@@ -1,0 +1,13 @@
+docker run -p 9200:9200 -e "discovery.type=single-node" elasticsearch:7.17.10
+
+py -3.10 -m venv venv310
+python --version
+.\venv310\Scripts\activate
+
+pip install -r requirements.txt
+pip install protobuf==4.25.3
+restart the terminal/ close and re open vs code
+
+python preprocessing/preprocess_arxiv.py
+$env:PYTHONPATH = "."
+python app/web_interface.py

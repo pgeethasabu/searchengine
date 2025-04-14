@@ -1,0 +1,27 @@
+# Virtual environments
+venv/
+.venv/
+env/
+*.egg-info/
+
+# Python bytecode
+__pycache__/
+*.py[cod]
+
+# Logs
+*.log
+
+# Dataset
+data/
+*.json
+*.csv
+
+# Jupyter notebooks (optional)
+*.ipynb
+
+# VS Code settings (optional)
+.vscode/
+
+# OS files
+.DS_Store
+Thumbs.db
